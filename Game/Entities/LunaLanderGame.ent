@@ -1,0 +1,4 @@
+<Entity
+ Name="LunaLanderGame" 
+ Script="Scripts/Entities/LunaLander/LunaLanderGame.lua"
+/>
