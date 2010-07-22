@@ -53,18 +53,51 @@ function LunaLanderGame.Running.OnBeginState (self)
    self:Activate (1)
 end
 
-function LunaLanderGame.Running.OnUpdate (self, ...)
+local function update_helper (self)
    local upvec = {x=0, y=0, z=1}
-   if self.KeyState.Up then
-      self:AddImpulse (-1, {x=0, y=0, z=0}, upvec, 1)
-      System.Log "Up"
+   local task = {}
+
+   while true do
+      if self.KeyState.Up then
+         table.insert (task, {self.AddImpulse, self, -1, {x=0, y=0, z=0}, upvec, 1})
+         table.insert (task, {System.Log, "Up"})
+      end
+
+      table.insert (task, {self.SetAngles, self, {x=0, y=0, z=0}})
+
+      if self.KeyState.Right then
+         -- task = (function (task)
+         --            if task then task () end
+         --            self:AddImpulse (-1, {x=0, y=0, z=0}, {x=0, y=0, z=0}, 0.01, 1, {x=0,y=1,z=0}, 0.1)
+         --            System.Log "Right"
+         --         end) (task)
+      end
+
+      coroutine.yield (task)
+      task = {}
+   end
+end
+
+function LunaLanderGame.Running.OnUpdate (self, ...)
+   if not self.UpdateCoro then
+      self.UpdateCoro = coroutine.create (update_helper)
    end
 
-   self:SetAngles ({x=0, y=0, z=0})
+   if coroutine.status (self.UpdateCoro) ~= "dead" then
+      local stat, task = coroutine.resume (self.UpdateCoro, self)
 
-   if self.KeyState.Right then
-      self:AddImpulse (-1, {x=0, y=0, z=0}, {x=0, y=0, z=0}, 0.01, 1, {x=0,y=1,z=0}, 0.1)
-      System.Log "Right"
+      if stat then
+         for i, t in ipairs (task) do
+            local func = table.remove (t, 1)
+            func (unpack (t))
+         end
+      else
+         System.Error (task)
+         self:GotoState "Finished"
+      end
+   else
+      self.UpdateCoro = nil
+      self:GotoState "Finished"
    end
 end
 
