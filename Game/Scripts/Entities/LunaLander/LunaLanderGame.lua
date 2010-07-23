@@ -54,24 +54,30 @@ function LunaLanderGame.Running.OnBeginState (self)
 end
 
 local function update_helper (self)
-   local upvec = {x=0, y=0, z=1}
    local task = {}
+   local angle = 0
 
    while true do
       if self.KeyState.Up then
-         table.insert (task, {self.AddImpulse, self, -1, {x=0, y=0, z=0}, upvec, 1})
+         local vec = {}
+         RotateVectorAroundR (vec, {x = 0, y = 0, z = 1}, {x = 0, y = 1, z = 0}, angle)
+         table.insert (task, {self.AddImpulse, self, -1, {x=0, y=0, z=0}, vec, 1})
          table.insert (task, {System.Log, "Up"})
       end
 
-      table.insert (task, {self.SetAngles, self, {x=0, y=0, z=0}})
-
       if self.KeyState.Right then
-         -- task = (function (task)
-         --            if task then task () end
-         --            self:AddImpulse (-1, {x=0, y=0, z=0}, {x=0, y=0, z=0}, 0.01, 1, {x=0,y=1,z=0}, 0.1)
-         --            System.Log "Right"
-         --         end) (task)
+         angle = angle + 0.2
+         table.insert (task, {System.Log, "Right"})
       end
+
+      if self.KeyState.Left then
+         angle = angle - 0.2
+         table.insert (task, {System.Log, "Left"})
+      end
+
+      angle = clamp (angle, -g_Pi2, g_Pi2)
+
+      table.insert (task, {self.SetAngles, self, {x=0, y=angle, z=0}})
 
       coroutine.yield (task)
       task = {}
