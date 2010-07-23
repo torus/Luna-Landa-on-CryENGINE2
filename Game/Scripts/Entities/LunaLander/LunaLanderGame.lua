@@ -56,32 +56,49 @@ end
 local function update_helper (self)
    local task = {}
    local angle = 0
+   self.LandingStatus = nil
+
+   local function addtask (...)
+      table.insert (task, {...})
+   end
 
    while true do
+      if self.LandingStatus then
+         if self.LandingStatus.result then
+            addtask (System.Log, "Success!")
+         else
+            addtask (System.Log, "Fail!")
+         end
+         self.LandingStatus = nil
+         break
+      end
+
       if self.KeyState.Up then
          local vec = {}
          RotateVectorAroundR (vec, {x = 0, y = 0, z = 1}, {x = 0, y = 1, z = 0}, angle)
-         table.insert (task, {self.AddImpulse, self, -1, {x=0, y=0, z=0}, vec, 1})
-         table.insert (task, {System.Log, "Up"})
+         addtask (self.AddImpulse, self, -1, {x=0, y=0, z=0}, vec, 1)
+         addtask (System.Log, "Up")
       end
 
       if self.KeyState.Right then
          angle = angle + 0.2
-         table.insert (task, {System.Log, "Right"})
+         addtask (System.Log, "Right")
       end
 
       if self.KeyState.Left then
          angle = angle - 0.2
-         table.insert (task, {System.Log, "Left"})
+         addtask (System.Log, "Left")
       end
 
       angle = clamp (angle, -g_Pi2, g_Pi2)
 
-      table.insert (task, {self.SetAngles, self, {x=0, y=angle, z=0}})
+      addtask (self.SetAngles, self, {x=0, y=angle, z=0})
 
       coroutine.yield (task)
       task = {}
    end
+
+   return task
 end
 
 function LunaLanderGame.Running.OnUpdate (self, ...)
@@ -105,6 +122,14 @@ function LunaLanderGame.Running.OnUpdate (self, ...)
       self.UpdateCoro = nil
       self:GotoState "Finished"
    end
+end
+
+function LunaLanderGame.Running.OnCollision (self, hitdata)
+   local norm = hitdata.normal
+   local vel = hitdata.velocity
+   local ang = self:GetAngles ()
+
+   self.LandingStatus = {result = false}
 end
 
 function LunaLanderGame.Running.OnEndState (self)
