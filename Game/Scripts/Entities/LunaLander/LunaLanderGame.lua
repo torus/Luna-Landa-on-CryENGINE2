@@ -51,6 +51,23 @@ function LunaLanderGame.Running.OnBeginState (self)
    self:Physicalize (1, PE_RIGID, {mass = 1})
    self:EnablePhysics (1)
    self:Activate (1)
+
+   -- setupCamera (self)
+
+end
+
+function setupCamera (self)
+   local cament = EntityNamed "Camera1"
+   local viewid = Game.CreateView ()
+   Game.LinkToView (viewid, self.id)
+
+   local target = self:GetWorldPos ()
+   local campos = {x = target.x - 15, y = target.y, z = target.z}
+   cament:SetPos (campos)
+
+   local aim = DifferenceVectors (target, campos)
+   cament:SetWorldVDir(aim);
+
 end
 
 local function update_helper (self)
@@ -74,8 +91,8 @@ local function update_helper (self)
       end
 
       if self.KeyState.Up then
-         local vec = {}
-         RotateVectorAroundR (vec, {x = 0, y = 0, z = 1}, {x = 0, y = 1, z = 0}, angle)
+         local vec = {x = 0, y = 0, z = 0}
+         RotateVectorAroundR (vec, {x = 0, y = 0, z = 1}, {x = 1, y = 0, z = 0}, angle)
          addtask (self.AddImpulse, self, -1, {x=0, y=0, z=0}, vec, 1)
          addtask (System.Log, "Up")
       end
@@ -92,7 +109,7 @@ local function update_helper (self)
 
       angle = clamp (angle, -g_Pi2, g_Pi2)
 
-      addtask (self.SetAngles, self, {x=0, y=angle, z=0})
+      addtask (self.SetAngles, self, {x=angle, y=0, z=0})
 
       coroutine.yield (task)
       task = {}
