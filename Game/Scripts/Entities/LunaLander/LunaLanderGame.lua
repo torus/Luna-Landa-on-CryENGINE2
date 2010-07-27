@@ -37,6 +37,7 @@ function LunaLanderGame.Init.OnBeginState (self)
    System.Log "LunaLanderGame.Init.OnBeginState"
 
    System.SetCVar ("p_gravity_z", -1)
+   System.SetCVar ("g_detachCamera", 0)
 
    local slot = self:LoadObject (1, "objects/characters/animals/turtle/turtle.cdf")
    System.Log ("slot: " .. slot)
@@ -52,22 +53,12 @@ function LunaLanderGame.Running.OnBeginState (self)
    self:EnablePhysics (1)
    self:Activate (1)
 
-   -- setupCamera (self)
-
+   System.SetCVar ("g_detachCamera", 1)
 end
 
-function setupCamera (self)
-   local cament = EntityNamed "Camera1"
-   local viewid = Game.CreateView ()
-   Game.LinkToView (viewid, self.id)
-
-   local target = self:GetWorldPos ()
-   local campos = {x = target.x - 15, y = target.y, z = target.z}
-   cament:SetPos (campos)
-
-   local aim = DifferenceVectors (target, campos)
-   cament:SetWorldVDir(aim);
-
+local function explode (self)
+   local expent = System.SpawnEntity {class = "Explosion", name = "explosion", position = self:GetPos ()}
+   expent:Explode ()
 end
 
 local function update_helper (self)
@@ -83,8 +74,11 @@ local function update_helper (self)
       if self.LandingStatus then
          if self.LandingStatus.result then
             addtask (System.Log, "Success!")
+            addtask (BroadcastEvent, self, "Success");
          else
             addtask (System.Log, "Fail!")
+            addtask (BroadcastEvent, self, "Fail");
+            addtask (explode, self)
          end
          self.LandingStatus = nil
          break
@@ -114,6 +108,8 @@ local function update_helper (self)
       coroutine.yield (task)
       task = {}
    end
+
+
 
    return task
 end
@@ -212,6 +208,8 @@ LunaLanderGame.FlowEvents = {
    },
 
    Outputs = {
+      Success = "bool",
+      Fail = "bool",
    },
 }
 
